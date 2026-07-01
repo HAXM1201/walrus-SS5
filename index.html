@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <title>World Cup Xưa & Nay | Walrus Memory</title>
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      .bg-fixed-custom {
+        background-image: url("ss5.png");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+      }
+      @keyframes marquee {
+        0% {
+          transform: translateX(100%);
+        }
+        100% {
+          transform: translateX(-100%);
+        }
+      }
+      .animate-marquee {
+        display: inline-block;
+        animation: marquee 20s linear infinite;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-fixed-custom min-h-screen flex flex-col items-center justify-start text-white"
+  >
+    <div
+      class="w-full overflow-hidden py-2 border-y border-white/20 bg-white/5 backdrop-blur-md z-20"
+    >
+      <div
+        id="marqueeText"
+        class="whitespace-nowrap animate-marquee text-blue-200 font-mono text-sm uppercase tracking-widest"
+      >
+        ✨ Lưu trữ lịch sử World Cup vĩnh viễn trên Walrus Memory — Bất biến,
+        Phi tập trung, và Trường tồn theo thời gian. - Thiết kế bởi HALN
+      </div>
+    </div>
+
+    <div class="fixed inset-0 bg-blue-900/40 backdrop-blur-sm z-0"></div>
+
+    <div
+      class="relative z-10 w-full flex justify-between items-center px-6 py-4"
+    >
+      <div
+        class="flex items-center space-x-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-4 py-2 shadow-lg"
+      >
+        <span
+          class="font-extrabold text-transparent bg-clip-text bg-gradient-to-r select-none from-blue-400 to-teal-300 tracking-wider text-sm font-mono"
+        >
+          WALRUS SESSION 5
+        </span>
+      </div>
+
+      <div>
+        <select
+          id="langSwitch"
+          onchange="changeLanguage()"
+          class="bg-white/10 border border-white/20 rounded-lg px-3 py-1 text-sm outline-none cursor-pointer hover:bg-white/20 text-white"
+        >
+          <option value="vi" class="text-gray-900">🇻🇳 Tiếng Việt</option>
+          <option value="en" class="text-gray-900">🇺🇸 English</option>
+        </select>
+      </div>
+    </div>
+
+    <div
+      class="relative z-10 w-full max-w-3xl flex flex-col items-center p-6 mt-4"
+    >
+      <div class="mb-12 text-center space-y-3">
+        <h1
+          id="title"
+          class="text-6xl font-extrabold tracking-tighter text-white drop-shadow-lg"
+        >
+          World Cup Xưa & Nay
+        </h1>
+        <p
+          id="subtitle"
+          class="text-blue-100 text-xl font-medium tracking-wide"
+        >
+          Phân tích bóng đá với bộ nhớ vĩnh viễn trên Walrus
+        </p>
+      </div>
+
+      <div
+        class="w-full max-w-2xl relative shadow-2xl rounded-full bg-white/80 border border-white hover:border-blue-300 transition-all duration-300"
+      >
+        <input
+          id="queryInput"
+          type="text"
+          placeholder="Dán link bài viết từ 24h.com.vn hoặc đặt câu hỏi..."
+          class="w-full p-5 pl-8 pr-40 rounded-full bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 text-lg text-gray-900 placeholder-gray-500"
+        />
+        <button
+          onclick="handleQuery()"
+          id="searchBtn"
+          class="absolute right-3 top-3 bg-blue-600 text-white px-8 py-3 rounded-full font-semibold hover:bg-blue-700 active:scale-95 transition-all duration-150"
+        >
+          Tìm kiếm
+        </button>
+      </div>
+
+      <div
+        id="resultBox"
+        class="mt-12 w-full max-w-2xl bg-white/90 backdrop-blur-lg p-8 rounded-3xl shadow-xl border border-white/50 hidden space-y-4 text-left"
+      >
+        <h3 id="resultHeader" class="font-bold text-gray-900 text-lg">
+          Kết quả từ Walrus Memory:
+        </h3>
+        <p id="aiResponse" class="text-gray-800 text-lg italic leading-relaxed">
+          Đang phân tích dữ liệu...
+        </p>
+        <div
+          id="blobId"
+          class="mt-6 text-sm text-blue-700 font-mono bg-blue-50/50 p-3 rounded-lg border border-blue-100 truncate"
+        ></div>
+      </div>
+    </div>
+
+    <script>
+      // Hệ thống đa ngôn ngữ
+      const translations = {
+        vi: {
+          title: "World Cup Xưa & Nay",
+          subtitle: "Phân tích bóng đá với bộ nhớ vĩnh viễn trên Walrus",
+          placeholder: "Dán link bài viết hoặc đặt câu hỏi...",
+          btn: "Tìm kiếm",
+          res: "Kết quả từ Walrus Memory:",
+          marquee:
+            "✨ Lưu trữ lịch sử World Cup vĩnh viễn trên Walrus Memory — Bất biến, Phi tập trung, và Trường tồn theo thời gian. - Thiết kế bởi HALN",
+        },
+        en: {
+          title: "World Cup Past & Present",
+          subtitle: "Football analytics with permanent Walrus memory",
+          placeholder: "Paste article link or ask a question...",
+          btn: "Search",
+          res: "Results from Walrus Memory:",
+          marquee:
+            "✨ World Cup History preserved forever on Walrus Memory — Immutable, Decentralized, and Timeless. - Designed by HALN",
+        },
+      };
+      async function handleQuery() {
+        const query = document.getElementById("queryInput").value;
+        const resultBox = document.getElementById("resultBox");
+        const aiResponse = document.getElementById("aiResponse");
+
+        if (!query.trim()) return;
+
+        resultBox.classList.remove("hidden");
+        aiResponse.innerText =
+          "Đang kết nối với Walrus Memory và phân tích dữ liệu theo khung suy luận...";
+        document.getElementById("blobId").innerText = "";
+
+        try {
+          // Gửi query lên API route nội bộ trên Vercel
+          const response = await fetch("/api/index", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "process", data: query }),
+          });
+          const data = await response.json();
+
+          // Hiển thị kết quả đã được AI phân tích theo Form 3 bước
+          aiResponse.innerHTML = data.answer.replace(/\n/g, "<br>");
+          document.getElementById("blobId").innerText =
+            "Status: " + data.status;
+        } catch (error) {
+          aiResponse.innerText =
+            "Đã xảy ra lỗi khi kết nối với hệ thống AI Agent.";
+        }
+      }
+      function changeLanguage() {
+        const lang = document.getElementById("langSwitch").value;
+        document.getElementById("title").innerText = translations[lang].title;
+        document.getElementById("subtitle").innerText =
+          translations[lang].subtitle;
+        document.getElementById("queryInput").placeholder =
+          translations[lang].placeholder;
+        document.getElementById("searchBtn").innerText = translations[lang].btn;
+        document.getElementById("resultHeader").innerText =
+          translations[lang].res;
+        document.getElementById("marqueeText").innerText =
+          translations[lang].marquee;
+      }
+
+      async function handleQuery() {
+        const query = document.getElementById("queryInput").value;
+        const resultBox = document.getElementById("resultBox");
+        const aiResponse = document.getElementById("aiResponse");
+
+        resultBox.classList.remove("hidden");
+        aiResponse.innerText =
+          "Đang kết nối với Walrus Memory và phân tích bài viết...";
+        document.getElementById("blobId").innerText = "";
+
+        try {
+          const response = await fetch("/api/index", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "process", data: query }),
+          });
+          const data = await response.json();
+
+          aiResponse.innerText = data.answer;
+          document.getElementById("blobId").innerText =
+            "Blob ID: " + data.blobId;
+        } catch (error) {
+          aiResponse.innerText = "Đã xảy ra lỗi khi kết nối với Walrus Memory.";
+        }
+      }
+    </script>
+  </body>
+</html>

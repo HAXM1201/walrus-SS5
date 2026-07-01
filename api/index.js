@@ -1,14 +1,16 @@
 import { MemWal } from "@mysten-incubation/memwal";
-import { generateText } from "ai";
-import { google } from "@ai-sdk/google";
+import { GoogleGenAI } from "@google/genai";
 
-// Khởi tạo kết nối MemWal đồng bộ thông số cấu hình từ Vercel Env
+// Khởi tạo kết nối bộ nhớ Walrus Mainnet
 const memwal = MemWal.create({
     key: process.env.MEMWAL_DELEGATE_KEY_HEX, 
     accountId: process.env.MEMWAL_ACCOUNT_ID,
     serverUrl: "https://relayer.memory.walrus.xyz", 
     namespace: "worldcup-xua-nay-analytics"
 });
+
+// Khởi tạo bộ não Google AI thế hệ mới (Hỗ trợ hoàn hảo đặc tả v2)
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const AGENT_SYSTEM_PROMPT = `
 You are the "World Cup Past & Present" AI Tactical Analyst, powered by Walrus Memory (MemWal).
@@ -23,29 +25,34 @@ export default async function handler(req, res) {
 
     const { action, data } = req.body;
 
-    // 1. XỬ LÝ TÌM KIẾM CHO TRANG WEB (ĐÃ SỬA LỖI 422 INVALID TYPE)
+    // 1. XỬ LÝ TÌM KIẾM CHO TRANG WEB (FIX TRIỆT ĐỂ LỖI UNSUPPORTED MODEL VERSION)
     if (action === 'process') {
         try {
             console.log(`🔍 Tiến hành recall bộ nhớ Walrus với từ khóa chuỗi: ${data}`);
             
-            // HOÀN HẢO: Truyền thẳng chuỗi string 'data' để khớp định dạng đầu vào của Walrus
+            // Gọi lệnh tìm kiếm dữ liệu trên Walrus
             const memoryResults = await memwal.recall(data, { maxResults: 5 }); 
             
             const walrusContext = memoryResults && memoryResults.length > 0 
                 ? memoryResults.map(m => m.text).join("\n")
                 : "Không tìm thấy dữ liệu trực tiếp trong bộ nhớ Walrus.";
 
-            console.log("🤖 Đang gửi dữ liệu bối cảnh qua cho Gemini xử lý...");
-            const response = await generateText({
-                model: google("gemini-1.5-flash"), 
-                system: AGENT_SYSTEM_PROMPT,
-                prompt: `Dữ liệu bối cảnh lịch sử rút từ Walrus Mainnet:\n${walrusContext}\n\nYêu cầu phân tích từ người dùng: ${data}`,
+            console.log("🤖 Đang gửi dữ liệu bối cảnh qua cấu trúc Google GenAI mới...");
+            
+            // Sử dụng hàm gọi trực tiếp từ SDK chính thức của Google để tránh lỗi cấu trúc của AI SDK
+            const response = await ai.models.generateContent({
+                model: 'gemini-1.5-flash',
+                contents: `Dữ liệu bối cảnh lịch sử rút từ Walrus Mainnet:\n${walrusContext}\n\nYêu cầu phân tích từ người dùng: ${data}`,
+                config: {
+                    systemInstruction: AGENT_SYSTEM_PROMPT,
+                    temperature: 0.3
+                }
             });
 
             return res.json({ answer: response.text, status: "Success" });
         } catch (error) {
             console.error("❌ Lỗi Recall hoặc Gemini:", error);
-            return res.status(500).json({ answer: "Hệ thống đang đồng bộ hoặc gặp lỗi truy xuất: " + error.message });
+            return res.status(500).json({ answer: "Hệ thống trục trặc kết nối: " + error.message });
         }
     }
 

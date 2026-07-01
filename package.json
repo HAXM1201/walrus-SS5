@@ -2,6 +2,7 @@
   "name": "walrus-ss-5",
   "version": "1.0.0",
   "description": "World Cup Analysis Agent powered by Walrus Memory",
+  "type": "module",
   "main": "api/index.js",
   "dependencies": {
     "@mysten-incubation/memwal": "^0.0.5",

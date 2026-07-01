@@ -6,8 +6,8 @@
   "main": "api/index.js",
   "dependencies": {
     "@mysten-incubation/memwal": "^0.0.5",
-    "@ai-sdk/google": "*",
-    "ai": "^4.0.0",
+    "@ai-sdk/google": "^1.0.0",
+    "ai": "^5.0.0",
     "zod": "^3.23.8"
   },
   "engines": {

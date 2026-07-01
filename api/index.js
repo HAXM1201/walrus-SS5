@@ -2,6 +2,7 @@ import { MemWal } from "@mysten-incubation/memwal";
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 
+// Khởi tạo kết nối MemWal đồng bộ thông số cấu hình từ Vercel Env
 const memwal = MemWal.create({
     key: process.env.MEMWAL_DELEGATE_KEY_HEX, 
     accountId: process.env.MEMWAL_ACCOUNT_ID,
@@ -22,13 +23,13 @@ export default async function handler(req, res) {
 
     const { action, data } = req.body;
 
-    // 1. XỬ LÝ TÌM KIẾM CHO TRANG WEB (FIX LỖI 500 TẠI ĐÂY)
+    // 1. XỬ LÝ TÌM KIẾM CHO TRANG WEB (ĐÃ SỬA LỖI 422 INVALID TYPE)
     if (action === 'process') {
         try {
-            console.log(`🔍 Tiến hành recall bộ nhớ Walrus với từ khóa: ${data}`);
+            console.log(`🔍 Tiến hành recall bộ nhớ Walrus với từ khóa chuỗi: ${data}`);
             
-            // Sửa từ memwal.recall(data) thành cấu hình Object { query: data } chuẩn mẫu GitHub
-            const memoryResults = await memwal.recall({ query: data }, { maxResults: 5 }); 
+            // HOÀN HẢO: Truyền thẳng chuỗi string 'data' để khớp định dạng đầu vào của Walrus
+            const memoryResults = await memwal.recall(data, { maxResults: 5 }); 
             
             const walrusContext = memoryResults && memoryResults.length > 0 
                 ? memoryResults.map(m => m.text).join("\n")

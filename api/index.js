@@ -8,7 +8,7 @@ import path from "path";
 const memwal = MemWal.create({
     key: process.env.MEMWAL_DELEGATE_KEY_HEX, 
     accountId: process.env.MEMWAL_ACCOUNT_ID,
-    serverUrl: "https://api.memory.walrus.xyz", 
+    serverUrl: "https://relayer.memory.walrus.xyz",
     namespace: "worldcup-xua-nay-analytics"
 });
 

@@ -9,32 +9,46 @@ const memwal = MemWal.create({
     namespace: "worldcup-xua-nay-analytics"
 });
 
-const AGENT_SYSTEM_PROMPT = `You are the "World Cup Past & Present" AI Tactical Analyst. Analyze historical football matchups using a 3-step form.`;
+const AGENT_SYSTEM_PROMPT = `
+You are the "World Cup Past & Present" AI Tactical Analyst, powered by Walrus Memory (MemWal).
+Analyze historical football matchups using strict 3-step form:
+1. RAW DATA ANALYSIS (THỐNG KÊ THÔ)
+2. TACTICAL & INTENSITY EVOLUTION (SUY LUẬN CHIẾN THUẬT)
+3. PAST VS PRESENT SYNTHESIS (ĐÁNH GIÁ XƯA & NAY)
+`;
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     const { action, data } = req.body;
 
-    // 1. XỬ LÝ TÌM KIẾM CHO TRANG WEB
+    // 1. XỬ LÝ TÌM KIẾM CHO TRANG WEB (FIX LỖI 500 TẠI ĐÂY)
     if (action === 'process') {
         try {
-            const memoryResults = await memwal.recall(data, { maxResults: 5 });
-            const walrusContext = memoryResults.map(m => m.text).join("\n");
+            console.log(`🔍 Tiến hành recall bộ nhớ Walrus với từ khóa: ${data}`);
+            
+            // Sửa từ memwal.recall(data) thành cấu hình Object { query: data } chuẩn mẫu GitHub
+            const memoryResults = await memwal.recall({ query: data }, { maxResults: 5 }); 
+            
+            const walrusContext = memoryResults && memoryResults.length > 0 
+                ? memoryResults.map(m => m.text).join("\n")
+                : "Không tìm thấy dữ liệu trực tiếp trong bộ nhớ Walrus.";
 
+            console.log("🤖 Đang gửi dữ liệu bối cảnh qua cho Gemini xử lý...");
             const response = await generateText({
                 model: google("gemini-1.5-flash"), 
                 system: AGENT_SYSTEM_PROMPT,
-                prompt: `Dữ liệu từ Walrus:\n${walrusContext}\n\nYêu cầu: ${data}`,
+                prompt: `Dữ liệu bối cảnh lịch sử rút từ Walrus Mainnet:\n${walrusContext}\n\nYêu cầu phân tích từ người dùng: ${data}`,
             });
 
-            return res.json({ answer: response.text });
+            return res.json({ answer: response.text, status: "Success" });
         } catch (error) {
-            return res.status(500).json({ answer: "Hệ thống đang đồng bộ dữ liệu Walrus, vui lòng thử lại sau." });
+            console.error("❌ Lỗi Recall hoặc Gemini:", error);
+            return res.status(500).json({ answer: "Hệ thống đang đồng bộ hoặc gặp lỗi truy xuất: " + error.message });
         }
     }
 
-    // 2. KÍCH HOẠT BƠM MỒI DATA 1930 TRỰC TIẾP KHÔNG CẦN ĐỌC FILE
+    // 2. KÍCH HOẠT BƠM MỒI DATA 1930
     if (action === 'seed_data_xyz') {
         try {
             const sampleData1930 = "Lịch sử World Cup 1930 diễn ra tại Uruguay. Uruguay vô địch sau khi thắng Argentina 4-2 ở chung kết. Brazil bị loại từ vòng bảng, chỉ ghi được 5 bàn thắng (thắng Bolivia 4-0 và thua Yugoslavia 1-2). Cầu thủ Guillermo Stábile của Argentina là vua phá lưới với 8 bàn.";

@@ -7,22 +7,38 @@ const memwal = MemWal.create({
     namespace: "worldcup-xua-nay-analytics"
 });
 
-// Cấu hình Prompt linh hoạt theo ngôn ngữ (Giữ nguyên cấu trúc 3 bước dự thi)
+// Cấu hình Prompt tăng cường ép buộc ngôn ngữ tuyệt đối cho Llama 3.1
 const getSystemPrompt = (lang) => {
     if (lang === 'en') {
         return `You are the "World Cup Past & Present" AI Tactical Analyst, powered by Walrus Memory (MemWal).
-CRITICAL: You MUST respond entirely in ENGLISH.
-Analyze historical football matchups using strict 3-step form:
+
+CRITICAL RULE: You MUST reply entirely in ENGLISH. DO NOT use Vietnamese in your response, even if the provided context data or user query is in Vietnamese. Translate any Vietnamese context into English automatically.
+
+You MUST strictly follow this 3-step English template for your output formatting:
 1. RAW DATA ANALYSIS
+- Provide raw statistics, match details, and core historical facts retrieved.
+
 2. TACTICAL & INTENSITY EVOLUTION
-3. PAST VS PRESENT SYNTHESIS`;
+- Analyze how tactics, formations, and physical intensity have changed over time.
+
+3. PAST VS PRESENT SYNTHESIS
+- Synthesize the comparison between football eras and provide a final conclusion.`;
     }
+    
+    // Mặc định trả về Tiếng Việt
     return `You are the "World Cup Past & Present" AI Tactical Analyst, powered by Walrus Memory (MemWal).
-CRITICAL: Bạn BẮT BUỘC phải trả lời hoàn toàn bằng TIẾNG VIỆT.
-Analyze historical football matchups using strict 3-step form:
+
+QUY TẮC BẮT BUỘC: Bạn PHẢI trả lời hoàn toàn bằng TIẾNG VIỆT. 
+
+Bạn PHẢI tuân thủ nghiêm ngặt cấu trúc định dạng 3 bước sau đây cho câu trả lời:
 1. RAW DATA ANALYSIS (THỐNG KÊ THÔ)
+- Cung cấp các số liệu thống kê thô, chi tiết trận đấu và sự thật lịch sử cốt lõi lấy được.
+
 2. TACTICAL & INTENSITY EVOLUTION (SUY LUẬN CHIẾN THUẬT)
-3. PAST VS PRESENT SYNTHESIS (ĐÁNH GIÁ XƯA & NAY)`;
+- Phân tích sự thay đổi về chiến thuật, sơ đồ đội hình và cường độ thể chất theo thời gian.
+
+3. PAST VS PRESENT SYNTHESIS (ĐÁNH GIÁ XƯA & NAY)
+- Tổng hợp so sánh giữa các kỷ nguyên bóng đá và đưa ra kết luận cuối cùng.`;
 };
 
 export default async function handler(req, res) {
@@ -33,7 +49,7 @@ export default async function handler(req, res) {
     const { action, data, lang } = req.body;
     const currentLang = lang || 'vi';
 
-    // 1. XỬ LÝ TÌM KIẾM CHO TRANG WEB
+    // 1. XỬ LÝ TÌM KIẾM VÀ PHÂN TÍCH
     if (action === 'process') {
         try {
             console.log(`🔍 Tiến hành recall từ khóa: ${data} [Ngôn ngữ: ${currentLang}]`);
@@ -42,9 +58,8 @@ export default async function handler(req, res) {
                 ? memoryResults.map(m => m.text).join("\n")
                 : (currentLang === 'en' ? "No direct data found in Walrus memory." : "Không tìm thấy dữ liệu trực tiếp trong bộ nhớ Walrus.");
 
-            console.log("🤖 Đang gửi dữ liệu bối cảnh qua API Groq (Llama 3.1)...");
+            console.log("🤖 Đang gửi dữ liệu bối cảnh qua API Groq (Llama 3.1) với Prompt ép ngôn ngữ...");
             
-            // Gọi trực tiếp endpoint của Groq bằng fetch thuần, không cần cài thư viện ngoài
             const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                 method: "POST",
                 headers: {
@@ -52,12 +67,17 @@ export default async function handler(req, res) {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    model: "llama-3.1-8b-instant", // Dòng mô hình siêu nhanh, free lượng request cực lớn
+                    model: "llama-3.1-8b-instant",
                     messages: [
                         { role: "system", content: getSystemPrompt(currentLang) },
-                        { role: "user", content: `Dữ liệu bối cảnh lịch sử rút từ Walrus Mainnet:\n${walrusContext}\n\nYêu cầu phân tích từ người dùng: ${data}` }
+                        { 
+                            role: "user", 
+                            content: currentLang === 'en'
+                                ? `Walrus Mainnet Historical Context Data (Translate this into English analysis if it is in Vietnamese):\n${walrusContext}\n\nUser Analysis Request: ${data}`
+                                : `Dữ liệu bối cảnh lịch sử rút từ Walrus Mainnet:\n${walrusContext}\n\nYêu cầu phân tích từ người dùng: ${data}`
+                        }
                     ],
-                    temperature: 0.3
+                    temperature: 0.2 // Giảm xuống 0.2 để AI tuân thủ cấu trúc hệ thống chặt chẽ hơn, không tự sáng tạo ngôn ngữ
                 })
             });
 

@@ -8,7 +8,7 @@ const memwal = MemWal.create({
     namespace: "worldcup-xua-nay-analytics"
 });
 
-// Khởi tạo SDK chính chủ của Google để chạy đặc tả v2 mượt mà
+// Khởi tạo SDK Google
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const AGENT_SYSTEM_PROMPT = `
@@ -32,9 +32,11 @@ export default async function handler(req, res) {
                 ? memoryResults.map(m => m.text).join("\n")
                 : "Không tìm thấy dữ liệu trực tiếp trong bộ nhớ Walrus.";
 
-            // Gọi trực tiếp thông qua @google/genai bản mới nhất
+            console.log("🤖 Đang gửi dữ liệu bối cảnh qua cấu trúc Google GenAI mới...");
+            
+            // ĐÃ SỬA: Đổi tên model thành 'gemini-2.5-flash' hoặc 'gemini-1.5-flash' kèm tiền tố chuẩn của hệ thống SDK mới
             const response = await ai.models.generateContent({
-                model: 'gemini-1.5-flash',
+                model: 'gemini-2.5-flash', // Sử dụng dòng mô hình chuẩn hóa thế hệ mới nhất chạy cực bốc cho SDK này
                 contents: `Dữ liệu bối cảnh lịch sử rút từ Walrus Mainnet:\n${walrusContext}\n\nYêu cầu phân tích từ người dùng: ${data}`,
                 config: {
                     systemInstruction: AGENT_SYSTEM_PROMPT,
@@ -48,6 +50,17 @@ export default async function handler(req, res) {
             return res.status(500).json({ answer: "Lỗi hệ thống: " + error.message });
         }
     }
+
+    if (action === 'seed_data_xyz') {
+        try {
+            const sampleData1930 = "Lịch sử World Cup 1930 diễn ra tại Uruguay. Uruguay vô địch sau khi thắng Argentina 4-2 ở chung kết. Brazil bị loại từ vòng bảng, chỉ ghi được 5 bàn thắng (thắng Bolivia 4-0 và thua Yugoslavia 1-2). Cầu thủ Guillermo Stábile của Argentina là vua phá lưới với 8 bàn.";
+            const job = await memwal.remember(sampleData1930);
+            return res.json({ success: true, job_id: job.job_id || job.id });
+        } catch (error) {
+            return res.status(500).json({ error: error.message });
+        }
+    }
+}
 
     if (action === 'seed_data_xyz') {
         try {

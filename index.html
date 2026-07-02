@@ -160,100 +160,104 @@
     </div>
 
     <script>
-      const translations = {
-        vi: {
-          title: "World Cup Xưa & Nay",
-          subtitle: "Phân tích bóng đá với bộ nhớ vĩnh viễn trên Walrus",
-          placeholder: "Dán link bài viết hoặc đặt câu hỏi...",
-          btn: "Tìm kiếm",
-          res: "Kết quả từ Walrus Memory:",
-          marquee: "✨ Lưu trữ lịch sử World Cup vĩnh viễn trên Walrus Memory — Bất biến, Phi tập trung, và Trường tồn theo thời gian. - Thiết kế bởi HALN",
-          loading: "Đang kết nối với Walrus Memory và phân tích dữ liệu theo khung suy luận...",
-          fail: "Đã xảy ra lỗi khi kết nối với hệ thống AI Agent."
-        },
-        en: {
-          title: "World Cup Past & Present",
-          subtitle: "Football analytics with permanent Walrus memory",
-          placeholder: "Paste article link or ask a question...",
-          btn: "Search",
-          res: "Results from Walrus Memory:",
-          marquee: "✨ World Cup History preserved forever on Walrus Memory — Immutable, Decentralized, and Timeless. - Designed by HALN",
-          loading: "Connecting to Walrus Memory and analyzing data based on reasoning framework...",
-          fail: "An error occurred while connecting to the AI Agent system."
-        },
-      };
+  const translations = {
+    vi: {
+      title: "World Cup Xưa & Nay",
+      subtitle: "Phân tích bóng đá với bộ nhớ vĩnh viễn trên Walrus",
+      placeholder: "Dán link bài viết hoặc đặt câu hỏi...",
+      btn: "Tìm kiếm",
+      res: "Kết quả từ Walrus Memory:",
+      marquee: "✨ Lưu trữ lịch sử World Cup vĩnh viễn trên Walrus Memory — Bất biến, Phi tập trung, và Trường tồn theo thời gian. - Thiết kế bởi HALN",
+      loading: "Đang kết nối với Walrus Memory và phân tích dữ liệu theo khung suy luận...",
+      fail: "Đã xảy ra lỗi khi kết nối với hệ thống AI Agent."
+    },
+    en: {
+      title: "World Cup Past & Present",
+      subtitle: "Football analytics with permanent Walrus memory",
+      placeholder: "Paste article link or ask a question...",
+      btn: "Search",
+      res: "Results from Walrus Memory:",
+      marquee: "✨ World Cup History preserved forever on Walrus Memory — Immutable, Decentralized, and Timeless. - Designed by HALN",
+      loading: "Connecting to Walrus Memory and analyzing data based on reasoning framework...",
+      fail: "An error occurred while connecting to the AI Agent system."
+    },
+  };
 
-      const targetWallet = "0x4053d0211cbbed75d1ac23bfb03e8302a91a69d85581291745ac94e2b746ee6e";
+  const targetWallet = "0x4053d0211cbbed75d1ac23bfb03e8302a91a69d85581291745ac94e2b746ee6e";
 
-      // Đã đồng bộ hoàn hảo: Gọi trực tiếp API SuiVision để lấy tổng số lượng NFT/Blobs thật trong tab Assets
-      async function refreshOnChainBlobsCount() {
-        try {
-          const response = await fetch(`https://api.suivision.xyz/v1/account/nfts?address=${targetWallet}&page=1&limit=1`);
-          const resData = await response.json();
-          
-          if (resData && resData.result && typeof resData.result.total !== 'undefined') {
-            const realTimeTotal = resData.result.total;
-            // Hiển thị số lượng thật từ chuỗi, fallback về 421 nếu tài sản trống hoặc API nghẽn mạch
-            document.getElementById("totalBlobsCount").innerText = (realTimeTotal > 0 ? realTimeTotal : 421) + " Blobs";
-            console.log(`📊 Đồng bộ thành công số lượng thật từ SuiVision: ${realTimeTotal} Blobs`);
-          } else {
-            document.getElementById("totalBlobsCount").innerText = "421 Blobs";
-          }
-        } catch (err) {
-          console.error("⚠️ Không thể kết nối API SuiVision, chuyển hướng sang fallback mặc định:", err);
-          document.getElementById("totalBlobsCount").innerText = "421 Blobs";
-        }
+  async function refreshOnChainBlobsCount() {
+    try {
+      const response = await fetch(`https://api.suivision.xyz/v1/account/nfts?address=${targetWallet}&page=1&limit=1`);
+      const resData = await response.json();
+      
+      if (resData && resData.result && typeof resData.result.total !== 'undefined') {
+        const realTimeTotal = resData.result.total;
+        document.getElementById("totalBlobsCount").innerText = (realTimeTotal > 0 ? realTimeTotal : 421) + " Blobs";
+      } else {
+        document.getElementById("totalBlobsCount").innerText = "421 Blobs";
+      }
+    } catch (err) {
+      console.error("⚠️ Không thể kết nối API SuiVision:", err);
+      document.getElementById("totalBlobsCount").innerText = "421 Blobs";
+    }
+  }
+
+  window.addEventListener("DOMContentLoaded", refreshOnChainBlobsCount);
+
+  async function handleQuery() {
+    const query = document.getElementById("queryInput").value.trim();
+    const resultBox = document.getElementById("resultBox");
+    const aiResponse = document.getElementById("aiResponse");
+    const blobIdEl = document.getElementById("blobId");
+    const currentLang = document.getElementById("langSwitch").value;
+
+    if (!query) return;
+
+    resultBox.classList.remove("hidden");
+    aiResponse.innerText = translations[currentLang].loading;
+    blobIdEl.innerText = "Đang lưu vào Walrus Memory...";
+
+    try {
+      const response = await fetch("/api/index", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "process", data: query, lang: currentLang }),
+      });
+      const data = await response.json();
+
+      if (data.answer) {
+        let formattedAnswer = data.answer.replace(/\n/g, "<br>");
+        aiResponse.innerHTML = formattedAnswer;
+        
+        // Cập nhật lại số blob sau khi lưu thành công
+        setTimeout(refreshOnChainBlobsCount, 2000);
+      } else {
+        aiResponse.innerText = currentLang === 'en' ? "No response received from system." : "Không nhận được phản hồi từ hệ thống.";
       }
 
-      // Kích hoạt quét tài sản on-chain ngay lập tức khi mở trang web
-      window.addEventListener("DOMContentLoaded", refreshOnChainBlobsCount);
-
-      async function handleQuery() {
-        const query = document.getElementById("queryInput").value;
-        const resultBox = document.getElementById("resultBox");
-        const aiResponse = document.getElementById("aiResponse");
-        const currentLang = document.getElementById("langSwitch").value;
-
-        if (!query.trim()) return;
-
-        resultBox.classList.remove("hidden");
-        aiResponse.innerText = translations[currentLang].loading;
-        document.getElementById("blobId").innerText = "";
-
-        try {
-          const response = await fetch("/api/index", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "process", data: query, lang: currentLang }),
-          });
-          const data = await response.json();
-
-          if (data.answer) {
-            let formattedAnswer = data.answer.replace(/\n/g, "<br>");
-            aiResponse.innerHTML = formattedAnswer;
-            
-            // Lệnh đúc thành công, kích hoạt quét lại để cập nhật số lượng mới sau khi giao dịch on-chain hoàn tất
-            setTimeout(refreshOnChainBlobsCount, 3000);
-          } else {
-            aiResponse.innerText = currentLang === 'en' ? "No response received from system." : "Không nhận được phản hồi từ hệ thống.";
-          }
-          
-          document.getElementById("blobId").innerText =
-            "Status: " + (data.status || "Success") + (data.blobId ? " | New Blob Minted: " + data.blobId : "");
-        } catch (error) {
-          aiResponse.innerText = translations[currentLang].fail;
-        }
+      // Hiển thị Blob ID chính xác hơn
+      let blobText = "Status: " + (data.status || "Success");
+      if (data.blobId) {
+        blobText += " | New Blob ID: " + data.blobId;
       }
+      blobIdEl.innerText = blobText;
 
-      function changeLanguage() {
-        const lang = document.getElementById("langSwitch").value;
-        document.getElementById("title").innerText = translations[lang].title;
-        document.getElementById("subtitle").innerText = translations[lang].subtitle;
-        document.getElementById("queryInput").placeholder = translations[lang].placeholder;
-        document.getElementById("searchBtn").innerText = translations[lang].btn;
-        document.getElementById("resultHeader").innerText = translations[lang].res;
-        document.getElementById("marqueeText").innerText = translations[lang].marquee;
-      }
-    </script>
+    } catch (error) {
+      console.error(error);
+      aiResponse.innerText = translations[currentLang].fail;
+      blobIdEl.innerText = "Lỗi khi lưu Blob";
+    }
+  }
+
+  function changeLanguage() {
+    const lang = document.getElementById("langSwitch").value;
+    document.getElementById("title").innerText = translations[lang].title;
+    document.getElementById("subtitle").innerText = translations[lang].subtitle;
+    document.getElementById("queryInput").placeholder = translations[lang].placeholder;
+    document.getElementById("searchBtn").innerText = translations[lang].btn;
+    document.getElementById("resultHeader").innerText = translations[lang].res;
+    document.getElementById("marqueeText").innerText = translations[lang].marquee;
+  }
+</script>
   </body>
 </html>

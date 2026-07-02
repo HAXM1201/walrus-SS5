@@ -20,10 +20,13 @@ Analyze historical football matchups using strict 3-step form:
 `;
 
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
 
     const { action, data } = req.body;
 
+    // 1. XỬ LÝ TÌM KIẾM CHO TRANG WEB
     if (action === 'process') {
         try {
             console.log(`🔍 Tiến hành recall từ khóa: ${data}`);
@@ -34,9 +37,8 @@ export default async function handler(req, res) {
 
             console.log("🤖 Đang gửi dữ liệu bối cảnh qua cấu trúc Google GenAI mới...");
             
-            // ĐÃ SỬA: Đổi tên model thành 'gemini-2.5-flash' hoặc 'gemini-1.5-flash' kèm tiền tố chuẩn của hệ thống SDK mới
             const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash', // Sử dụng dòng mô hình chuẩn hóa thế hệ mới nhất chạy cực bốc cho SDK này
+                model: 'gemini-2.5-flash', 
                 contents: `Dữ liệu bối cảnh lịch sử rút từ Walrus Mainnet:\n${walrusContext}\n\nYêu cầu phân tích từ người dùng: ${data}`,
                 config: {
                     systemInstruction: AGENT_SYSTEM_PROMPT,
@@ -51,24 +53,19 @@ export default async function handler(req, res) {
         }
     }
 
+    // 2. KÍCH HOẠT BƠM MỒI DATA 1930
     if (action === 'seed_data_xyz') {
         try {
             const sampleData1930 = "Lịch sử World Cup 1930 diễn ra tại Uruguay. Uruguay vô địch sau khi thắng Argentina 4-2 ở chung kết. Brazil bị loại từ vòng bảng, chỉ ghi được 5 bàn thắng (thắng Bolivia 4-0 và thua Yugoslavia 1-2). Cầu thủ Guillermo Stábile của Argentina là vua phá lưới với 8 bàn.";
+            console.log("🚀 Đang nạp mồi dữ liệu lên Walrus Mainnet...");
             const job = await memwal.remember(sampleData1930);
             return res.json({ success: true, job_id: job.job_id || job.id });
         } catch (error) {
+            console.error("❌ Lỗi Seeding:", error);
             return res.status(500).json({ error: error.message });
         }
     }
-}
 
-    if (action === 'seed_data_xyz') {
-        try {
-            const sampleData1930 = "Lịch sử World Cup 1930 diễn ra tại Uruguay. Uruguay vô địch sau khi thắng Argentina 4-2 ở chung kết. Brazil bị loại từ vòng bảng, chỉ ghi được 5 bàn thắng (thắng Bolivia 4-0 và thua Yugoslavia 1-2). Cầu thủ Guillermo Stábile của Argentina là vua phá lưới với 8 bàn.";
-            const job = await memwal.remember(sampleData1930);
-            return res.json({ success: true, job_id: job.job_id || job.id });
-        } catch (error) {
-            return res.status(500).json({ error: error.message });
-        }
-    }
+    // Trả về mặc định nếu không khớp action nào
+    return res.status(400).json({ error: 'Invalid action' });
 }

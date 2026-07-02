@@ -1,41 +1,29 @@
 import { MemWal } from "@mysten-incubation/memwal";
 
+// Khởi tạo kết nối bộ nhớ Walrus Mainnet chuẩn xác với dự án của bạn
 const memwal = MemWal.create({
     key: process.env.MEMWAL_DELEGATE_KEY_HEX, 
     accountId: process.env.MEMWAL_ACCOUNT_ID,
     serverUrl: "https://relayer.memory.walrus.xyz", 
-    namespace: "worldcup-xua-nay-analytics"
+    namespace: "walrus-ss-5"
 });
 
-// Cấu hình Prompt hệ thống cho kết quả đầu ra
+// Cấu hình Prompt hệ thống cho kết quả đầu ra theo ngôn ngữ lựa chọn
 const getSystemPrompt = (lang) => {
     if (lang === 'en') {
         return `You are the "World Cup Past & Present" AI Tactical Analyst, powered by Walrus Memory (MemWal).
 CRITICAL RULE: You MUST reply entirely in ENGLISH. DO NOT use Vietnamese.
-
-You MUST strictly follow this 3-step English template for your output formatting:
+Analyze using strict 3-step form:
 1. RAW DATA ANALYSIS
-- Provide raw statistics, match details, and core historical facts.
-
 2. TACTICAL & INTENSITY EVOLUTION
-- Analyze how tactics, formations, and physical intensity have changed over time.
-
-3. PAST VS PRESENT SYNTHESIS
-- Synthesize the comparison between football eras and provide a final conclusion.`;
+3. PAST VS PRESENT SYNTHESIS`;
     }
-    
     return `You are the "World Cup Past & Present" AI Tactical Analyst, powered by Walrus Memory (MemWal).
 QUY TẮC BẮT BUỘC: Bạn PHẢI trả lời hoàn toàn bằng TIẾNG VIỆT.
-
-Bạn PHẢI tuân thủ nghiêm ngặt cấu trúc định dạng 3 bước sau đây cho câu trả lời:
+Analyze using strict 3-step form:
 1. RAW DATA ANALYSIS (THỐNG KÊ THÔ)
-- Cung cấp các số liệu thống kê thô, chi tiết trận đấu và sự thật lịch sử cốt lõi.
-
 2. TACTICAL & INTENSITY EVOLUTION (SUY LUẬN CHIẾN THUẬT)
-- Phân tích sự thay đổi về chiến thuật, sơ đồ đội hình và cường độ thể chất theo thời gian.
-
-3. PAST VS PRESENT SYNTHESIS (ĐÁNH GIÁ XƯA & NAY)
-- Tổng hợp so sánh giữa các kỷ nguyên bóng đá và đưa ra kết luận cuối cùng.`;
+3. PAST VS PRESENT SYNTHESIS (ĐÁNH GIÁ XƯA & NAY)`;
 };
 
 export default async function handler(req, res) {
@@ -46,11 +34,12 @@ export default async function handler(req, res) {
     const { action, data, lang } = req.body;
     const currentLang = lang || 'vi';
 
+    // XỬ LÝ TRUY VẤN VÀ TỰ ĐỘNG TẠO BLOB REAL-TIME
     if (action === 'process') {
         try {
-            console.log(`Query gốc: ${data}`);
+            console.log(`Query gốc nhận được: ${data}`);
 
-            // Bước 1: Ép AI trích xuất duy nhất tên quốc gia bằng tiếng Anh (Ví dụ: "đội pháp" -> "France")
+            // 1. Trích xuất duy nhất tên quốc gia bằng tiếng Anh để tối ưu hóa khả năng tìm kiếm của Walrus
             const translationResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                 method: "POST",
                 headers: {
@@ -60,10 +49,7 @@ export default async function handler(req, res) {
                 body: JSON.stringify({
                     model: "llama-3.1-8b-instant",
                     messages: [
-                        { 
-                            role: "system", 
-                            content: "You are a keyword extractor. Extract ONLY the main country name in English from the football query (e.g., 'đội pháp' -> 'France', 'đội tuyển Anh' -> 'England', 'Ý ở world cup' -> 'Italy', 'Brazil'). Output ONLY the single country name. No punctuation, no extra words." 
-                        },
+                        { role: "system", content: "You are a keyword extractor. Extract ONLY the main country name in English from the football query. Output ONLY the single country name. No punctuation." },
                         { role: "user", content: data }
                     ],
                     temperature: 0.1
@@ -72,22 +58,30 @@ export default async function handler(req, res) {
 
             const translationData = await translationResponse.json();
             const englishQuery = translationData.choices?.[0]?.message?.content?.trim() || data;
-            console.log(`🔍 Từ khóa rút gọn tối ưu để quét Walrus: ${englishQuery}`);
+            console.log(`🔍 Từ khóa quét Walrus: ${englishQuery}`);
 
-            // Bước 2: Gọi lệnh recall lên Walrus Mainnet bằng tên quốc gia chuẩn
+            // 2. Thực hiện Recall lấy bối cảnh dữ liệu lịch sử từ bộ nhớ Walrus
             let walrusContext = "";
             try {
                 const memoryResults = await memwal.recall(englishQuery, { maxResults: 5 }); 
                 if (memoryResults && memoryResults.length > 0) {
                     walrusContext = memoryResults.map(m => m.text).join("\n");
-                    console.log("✅ Đã bốc được dữ liệu bối cảnh từ Walrus!");
                 }
             } catch (err) {
-                console.error("⚠️ Lỗi truy vấn mạng lưới Walrus:", err.message);
+                console.error("⚠️ Lỗi recall:", err.message);
             }
 
-            // Bước 3: Đẩy bối cảnh qua Llama 3.1 để kết xuất bài phân tích.
-            // Nếu walrusContext trống, AI sẽ tự động dùng kiến thức nền của nó để viết bài phân tích 3 bước hoàn chỉnh.
+            // 3. TỰ ĐỘNG GHI CÂU HỎI MỚI THÀNH MỘT BLOB TRÊN WALRUS MAINNET (Tăng tiến số lượng Blob thực tế)
+            let newBlobId = "N/A";
+            try {
+                console.log(`🚀 Tiến hành ghi nhận Blob mới on-chain cho câu hỏi: "${data}"...`);
+                const job = await memwal.remember(`User asked about ${englishQuery}: ${data}`);
+                newBlobId = job.job_id || job.id || "Success";
+            } catch (writeErr) {
+                console.error("⚠️ Lỗi ghi Blob tự động:", writeErr.message);
+            }
+
+            // 4. Kết xuất bài phân tích chiến thuật 3 bước qua cổng Llama 3.1
             const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                 method: "POST",
                 headers: {
@@ -98,10 +92,7 @@ export default async function handler(req, res) {
                     model: "llama-3.1-8b-instant",
                     messages: [
                         { role: "system", content: getSystemPrompt(currentLang) },
-                        { 
-                            role: "user", 
-                            content: `Dưới đây là dữ liệu bổ trợ từ bộ nhớ Walrus (nếu có):\n${walrusContext}\n\nHãy tiến hành lập bài phân tích chuyên sâu chuẩn cấu trúc 3 bước cho yêu cầu này của người dùng: ${data}`
-                        }
+                        { role: "user", content: `Dữ liệu từ bộ nhớ Walrus:\n${walrusContext}\n\nYêu cầu phân tích: ${data}` }
                     ],
                     temperature: 0.2
                 })
@@ -111,28 +102,17 @@ export default async function handler(req, res) {
             
             if (groqData.choices && groqData.choices[0]) {
                 const answerText = groqData.choices[0].message.content;
-                return res.json({ answer: answerText, status: "Success" });
+                // Trả kết quả phân tích kèm mã định danh Blob mới vừa đúc về cho giao diện web
+                return res.json({ answer: answerText, status: "Success", blobId: newBlobId });
             } else {
-                throw new Error(groqData.error?.message || "Lỗi không xác định từ Groq API");
+                throw new Error(groqData.error?.message || "Lỗi không xác định từ Groq");
             }
         } catch (error) {
             console.error("❌ Lỗi hệ thống:", error);
-            return res.status(500).json({ answer: (currentLang === 'en' ? "System error: " : "Lỗi hệ thống: ") + error.message });
+            return res.status(500).json({ answer: "Lỗi hệ thống: " + error.message });
         }
     }
 
-    // 2. KÍCH HOẠT BƠM MỒI DATA 1930
-    if (action === 'seed_data_xyz') {
-        try {
-            const sampleData1930 = "Lịch sử World Cup 1930 diễn ra tại Uruguay. Uruguay vô địch sau khi thắng Argentina 4-2 ở chung kết. Brazil bị loại từ vòng bảng, chỉ ghi được 5 bàn thắng (thắng Bolivia 4-0 và thua Yugoslavia 1-2). Cầu thủ Guillermo Stábile của Argentina là vua phá lưới với 8 bàn.";
-            console.log("🚀 Đang nạp mồi dữ liệu lên Walrus Mainnet...");
-            const job = await memwal.remember(sampleData1930);
-            return res.json({ success: true, job_id: job.job_id || job.id });
-        } catch (error) {
-            console.error("❌ Lỗi Seeding:", error);
-            return res.status(500).json({ error: error.message });
-        }
-    }
-
+    // Trả về lỗi nếu gọi sai hành động
     return res.status(400).json({ error: 'Invalid action' });
 }

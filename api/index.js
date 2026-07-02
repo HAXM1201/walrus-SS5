@@ -55,7 +55,7 @@ export default async function handler(req, res) {
             console.log("🤖 Đang gửi dữ liệu bối cảnh qua cấu trúc Google GenAI mới...");
             
             const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash', 
+                model: 'gemini-1.5-flash', 
                 contents: `Dữ liệu bối cảnh lịch sử rút từ Walrus Mainnet:\n${walrusContext}\n\nYêu cầu phân tích từ người dùng: ${data}`,
                 config: {
                     systemInstruction: getSystemPrompt(currentLang),

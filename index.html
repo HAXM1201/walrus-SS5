@@ -191,39 +191,35 @@
   countEl.innerText = "Đang đồng bộ...";
 
   try {
-    // Gọi thẳng tới API đếm tổng tài sản/NFT của Suivision dành cho ví của bạn
-    const response = await fetch(`https://api.suivision.xyz/mainnet/api/account/assets?address=${targetWallet}`);
+    // SỬA ĐỔI: Đổi sang endpoint API chuẩn của SuiVision
+    const response = await fetch(`https://api-v2.suivision.xyz/mainnet/api/account/portfolio?address=${targetWallet}`);
     
-    // Nếu API yêu cầu headers hoặc chặn CORS từ localhost, bạn có thể dùng API đếm tổng quan này:
-    // const response = await fetch(`https://api.suivision.xyz/mainnet/api/account/summary/${targetWallet}`);
-    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
     const resData = await response.json();
     console.log("Suivision Data:", resData);
 
-    // Trích xuất tổng số lượng item (tài sản/NFT) từ dữ liệu của Suivision
-    // Cấu trúc thông thường của Suivision: resData.result.total hoặc resData.data.total_items
     let totalItems = 0;
-    
+
+    // Đọc cấu trúc trả về từ SuiVision Portfolio
     if (resData && resData.result) {
-      // Trường hợp 1: API trả về tổng số ở trường total
-      totalItems = resData.result.total || resData.result.totalItems || 0;
-    } else if (resData && resData.data) {
-      // Trường hợp 2: Cấu trúc data lồng
-      totalItems = resData.data.total || 0;
+      // Đếm tổng số lượng NFT/Tài sản có trong portfolio
+      totalItems = resData.result.totalObjectCount || resData.result.totalNftCount || 0;
+      
+      // Nếu không có trường tổng, ta đếm số lượng item trong mảng danh sách tài sản
+      if (!totalItems && Array.isArray(resData.result.assets)) {
+        totalItems = resData.result.assets.length;
+      }
     }
 
-    // Hiển thị kết quả thật, nếu bằng 0 hoặc lỗi cấu trúc thì xử lý minh bạch
+    // Hiển thị số liệu thực tế, tuyệt đối không gán cứng
     if (totalItems > 0) {
       countEl.innerText = totalItems + " Blobs";
       console.log(`✅ Đồng bộ từ Suivision thành công: ${totalItems} items`);
     } else {
-      // Thử fallback kiểm tra nếu mảng trả về trực tiếp
-      let list = resData?.result?.list || resData?.data;
-      if (Array.isArray(list)) {
-        countEl.innerText = list.length + " Blobs";
-      } else {
-        countEl.innerText = "0 Blobs";
-      }
+      countEl.innerText = "0 Blobs";
     }
 
   } catch (err) {

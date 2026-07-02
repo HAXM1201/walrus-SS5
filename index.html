@@ -131,16 +131,17 @@
       </div>
 
       <div class="mt-12 w-full bg-slate-900/80 backdrop-blur-md p-6 rounded-2xl border border-white/10 text-left space-y-3 shadow-xl">
-        <h4 class="text-teal-400 font-mono font-bold text-base tracking-wider border-b border-white/10 pb-2 uppercase">
-          📊 Walrus Mainnet Agent Status (Hackathon Proof)
+        <h4 class="text-teal-400 font-mono font-bold text-base tracking-wider border-b border-white/10 pb-2 uppercase flex items-center gap-2">
+          <span>📊</span> WALRUS MAINNET AGENT STATUS (Hackathon Proof)
         </h4>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-sm text-gray-300">
           <div>
-            <span class="text-gray-400">⚡ Network:</span> <span class="text-emerald-400 font-bold">Walrus Mainnet</span>
+            <span class="text-gray-400">⚡ Network:</span> 
+            <span class="text-emerald-400 font-bold">Walrus Mainnet</span>
           </div>
           <div>
             <span class="text-gray-400">📦 Total Blobs Written:</span> 
-            <span id="totalBlobsCount" class="text-amber-400 font-bold font-sans text-base">Loading...</span> 
+            <span id="totalBlobsCount" class="text-amber-400 font-bold font-sans text-base">Đang đồng bộ...</span> 
           </div>
           <div class="md:col-span-2">
             <span class="text-gray-400">🤖 Agent Namespace ID:</span> 
@@ -160,104 +161,108 @@
     </div>
 
     <script>
-  const translations = {
-    vi: {
-      title: "World Cup Xưa & Nay",
-      subtitle: "Phân tích bóng đá với bộ nhớ vĩnh viễn trên Walrus",
-      placeholder: "Dán link bài viết hoặc đặt câu hỏi...",
-      btn: "Tìm kiếm",
-      res: "Kết quả từ Walrus Memory:",
-      marquee: "✨ Lưu trữ lịch sử World Cup vĩnh viễn trên Walrus Memory — Bất biến, Phi tập trung, và Trường tồn theo thời gian. - Thiết kế bởi HALN",
-      loading: "Đang kết nối với Walrus Memory và phân tích dữ liệu theo khung suy luận...",
-      fail: "Đã xảy ra lỗi khi kết nối với hệ thống AI Agent."
-    },
-    en: {
-      title: "World Cup Past & Present",
-      subtitle: "Football analytics with permanent Walrus memory",
-      placeholder: "Paste article link or ask a question...",
-      btn: "Search",
-      res: "Results from Walrus Memory:",
-      marquee: "✨ World Cup History preserved forever on Walrus Memory — Immutable, Decentralized, and Timeless. - Designed by HALN",
-      loading: "Connecting to Walrus Memory and analyzing data based on reasoning framework...",
-      fail: "An error occurred while connecting to the AI Agent system."
-    },
-  };
+      const translations = {
+        vi: {
+          title: "World Cup Xưa & Nay",
+          subtitle: "Phân tích bóng đá với bộ nhớ vĩnh viễn trên Walrus",
+          placeholder: "Dán link bài viết hoặc đặt câu hỏi...",
+          btn: "Tìm kiếm",
+          res: "Kết quả từ Walrus Memory:",
+          marquee: "✨ Lưu trữ lịch sử World Cup vĩnh viễn trên Walrus Memory — Bất biến, Phi tập trung, và Trường tồn theo thời gian. - Thiết kế bởi HALN",
+          loading: "Đang kết nối với Walrus Memory và phân tích dữ liệu theo khung suy luận...",
+          fail: "Đã xảy ra lỗi khi kết nối với hệ thống AI Agent."
+        },
+        en: {
+          title: "World Cup Past & Present",
+          subtitle: "Football analytics with permanent Walrus memory",
+          placeholder: "Paste article link or ask a question...",
+          btn: "Search",
+          res: "Results from Walrus Memory:",
+          marquee: "✨ World Cup History preserved forever on Walrus Memory — Immutable, Decentralized, and Timeless. - Designed by HALN",
+          loading: "Connecting to Walrus Memory and analyzing data based on reasoning framework...",
+          fail: "An error occurred while connecting to the AI Agent system."
+        },
+      };
 
-  const targetWallet = "0x4053d0211cbbed75d1ac23bfb03e8302a91a69d85581291745ac94e2b746ee6e";
+      const targetWallet = "0x4053d0211cbbed75d1ac23bfb03e8302a91a69d85581291745ac94e2b746ee6e";
 
-  async function refreshOnChainBlobsCount() {
-    try {
-      const response = await fetch(`https://api.suivision.xyz/v1/account/nfts?address=${targetWallet}&page=1&limit=1`);
-      const resData = await response.json();
-      
-      if (resData && resData.result && typeof resData.result.total !== 'undefined') {
-        const realTimeTotal = resData.result.total;
-        document.getElementById("totalBlobsCount").innerText = (realTimeTotal > 0 ? realTimeTotal : 421) + " Blobs";
-      } else {
-        document.getElementById("totalBlobsCount").innerText = "421 Blobs";
-      }
-    } catch (err) {
-      console.error("⚠️ Không thể kết nối API SuiVision:", err);
-      document.getElementById("totalBlobsCount").innerText = "421 Blobs";
-    }
-  }
+      async function refreshOnChainBlobsCount() {
+        const countEl = document.getElementById("totalBlobsCount");
+        countEl.innerText = "Đang đồng bộ...";
 
-  window.addEventListener("DOMContentLoaded", refreshOnChainBlobsCount);
-
-  async function handleQuery() {
-    const query = document.getElementById("queryInput").value.trim();
-    const resultBox = document.getElementById("resultBox");
-    const aiResponse = document.getElementById("aiResponse");
-    const blobIdEl = document.getElementById("blobId");
-    const currentLang = document.getElementById("langSwitch").value;
-
-    if (!query) return;
-
-    resultBox.classList.remove("hidden");
-    aiResponse.innerText = translations[currentLang].loading;
-    blobIdEl.innerText = "Đang lưu vào Walrus Memory...";
-
-    try {
-      const response = await fetch("/api/index", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "process", data: query, lang: currentLang }),
-      });
-      const data = await response.json();
-
-      if (data.answer) {
-        let formattedAnswer = data.answer.replace(/\n/g, "<br>");
-        aiResponse.innerHTML = formattedAnswer;
-        
-        // Cập nhật lại số blob sau khi lưu thành công
-        setTimeout(refreshOnChainBlobsCount, 2000);
-      } else {
-        aiResponse.innerText = currentLang === 'en' ? "No response received from system." : "Không nhận được phản hồi từ hệ thống.";
+        try {
+          const response = await fetch(`https://api.suivision.xyz/v1/account/nfts?address=${targetWallet}&page=1&limit=1`);
+          const resData = await response.json();
+          
+          if (resData?.result?.total !== undefined) {
+            const realCount = resData.result.total;
+            countEl.innerText = realCount + " Blobs";
+            console.log(`✅ Đồng bộ thành công: ${realCount} Blobs`);
+          } else {
+            countEl.innerText = "0 Blobs";
+          }
+        } catch (err) {
+          console.error("⚠️ Lỗi kết nối SuiVision:", err);
+          countEl.innerText = "Lỗi đồng bộ";
+        }
       }
 
-      // Hiển thị Blob ID chính xác hơn
-      let blobText = "Status: " + (data.status || "Success");
-      if (data.blobId) {
-        blobText += " | New Blob ID: " + data.blobId;
+      window.addEventListener("DOMContentLoaded", refreshOnChainBlobsCount);
+
+      async function handleQuery() {
+        const query = document.getElementById("queryInput").value.trim();
+        const resultBox = document.getElementById("resultBox");
+        const aiResponse = document.getElementById("aiResponse");
+        const blobIdEl = document.getElementById("blobId");
+        const currentLang = document.getElementById("langSwitch").value;
+
+        if (!query) return;
+
+        resultBox.classList.remove("hidden");
+        aiResponse.innerText = translations[currentLang].loading;
+        blobIdEl.innerText = "Đang lưu vào Walrus Memory...";
+
+        try {
+          const response = await fetch("/api/index", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "process", data: query, lang: currentLang }),
+          });
+          const data = await response.json();
+
+          if (data.answer) {
+            let formattedAnswer = data.answer.replace(/\n/g, "<br>");
+            aiResponse.innerHTML = formattedAnswer;
+            
+            // Cập nhật lại số blob sau khi lưu thành công
+            setTimeout(refreshOnChainBlobsCount, 2000);
+          } else {
+            aiResponse.innerText = currentLang === 'en' ? "No response received from system." : "Không nhận được phản hồi từ hệ thống.";
+          }
+
+          // Hiển thị Blob ID chính xác hơn
+          let blobText = "Status: " + (data.status || "Success");
+          if (data.blobId) {
+            blobText += " | New Blob ID: " + data.blobId;
+          }
+          blobIdEl.innerText = blobText;
+
+        } catch (error) {
+          console.error(error);
+          aiResponse.innerText = translations[currentLang].fail;
+          blobIdEl.innerText = "Lỗi khi lưu Blob";
+        }
       }
-      blobIdEl.innerText = blobText;
 
-    } catch (error) {
-      console.error(error);
-      aiResponse.innerText = translations[currentLang].fail;
-      blobIdEl.innerText = "Lỗi khi lưu Blob";
-    }
-  }
-
-  function changeLanguage() {
-    const lang = document.getElementById("langSwitch").value;
-    document.getElementById("title").innerText = translations[lang].title;
-    document.getElementById("subtitle").innerText = translations[lang].subtitle;
-    document.getElementById("queryInput").placeholder = translations[lang].placeholder;
-    document.getElementById("searchBtn").innerText = translations[lang].btn;
-    document.getElementById("resultHeader").innerText = translations[lang].res;
-    document.getElementById("marqueeText").innerText = translations[lang].marquee;
-  }
-</script>
+      function changeLanguage() {
+        const lang = document.getElementById("langSwitch").value;
+        document.getElementById("title").innerText = translations[lang].title;
+        document.getElementById("subtitle").innerText = translations[lang].subtitle;
+        document.getElementById("queryInput").placeholder = translations[lang].placeholder;
+        document.getElementById("searchBtn").innerText = translations[lang].btn;
+        document.getElementById("resultHeader").innerText = translations[lang].res;
+        document.getElementById("marqueeText").innerText = translations[lang].marquee;
+      }
+    </script>
   </body>
 </html>

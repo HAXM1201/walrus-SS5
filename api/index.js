@@ -7,12 +7,11 @@ const memwal = MemWal.create({
     namespace: "worldcup-xua-nay-analytics"
 });
 
-// Cấu hình Prompt tăng cường ép buộc ngôn ngữ tuyệt đối cho Llama 3.1
+// Cấu hình Prompt hệ thống cho kết quả đầu ra
 const getSystemPrompt = (lang) => {
     if (lang === 'en') {
         return `You are the "World Cup Past & Present" AI Tactical Analyst, powered by Walrus Memory (MemWal).
-
-CRITICAL RULE: You MUST reply entirely in ENGLISH. DO NOT use Vietnamese in your response, even if the provided context data or user query is in Vietnamese. Translate any Vietnamese context into English automatically.
+CRITICAL RULE: You MUST reply entirely in ENGLISH. DO NOT use Vietnamese.
 
 You MUST strictly follow this 3-step English template for your output formatting:
 1. RAW DATA ANALYSIS
@@ -25,10 +24,8 @@ You MUST strictly follow this 3-step English template for your output formatting
 - Synthesize the comparison between football eras and provide a final conclusion.`;
     }
     
-    // Mặc định trả về Tiếng Việt
     return `You are the "World Cup Past & Present" AI Tactical Analyst, powered by Walrus Memory (MemWal).
-
-QUY TẮC BẮT BUỘC: Bạn PHẢI trả lời hoàn toàn bằng TIẾNG VIỆT. 
+QUY TẮC BẮT BUỘC: Bạn PHẢI trả lời hoàn toàn bằng TIẾNG VIỆT.
 
 Bạn PHẢI tuân thủ nghiêm ngặt cấu trúc định dạng 3 bước sau đây cho câu trả lời:
 1. RAW DATA ANALYSIS (THỐNG KÊ THÔ)
@@ -49,17 +46,44 @@ export default async function handler(req, res) {
     const { action, data, lang } = req.body;
     const currentLang = lang || 'vi';
 
-    // 1. XỬ LÝ TÌM KIẾM VÀ PHÂN TÍCH
     if (action === 'process') {
         try {
-            console.log(`🔍 Tiến hành recall từ khóa: ${data} [Ngôn ngữ: ${currentLang}]`);
-            const memoryResults = await memwal.recall(data, { maxResults: 5 }); 
+            console.log(`原 Query nhận từ giao diện: ${data}`);
+
+            // Bước 1: Gọi một lệnh fetch siêu nhanh sang Groq để chuẩn hóa/dịch query sang Tiếng Anh chuyên ngành bóng đá
+            console.log("🤖 Đang chuẩn hóa và dịch từ khóa sang tiếng Anh để tối ưu tìm kiếm Walrus...");
+            const translationResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: "llama-3.1-8b-instant",
+                    messages: [
+                        { 
+                            role: "system", 
+                            content: "You are a translation utility. Translate the user's football-related query into a concise English search keyword or phrase (e.g., 'đội pháp' -> 'France national football team', 'ý' -> 'Italy'). Output ONLY the plain text translation. No explanations, no quotes." 
+                        },
+                        { role: "user", content: data }
+                    ],
+                    temperature: 0.1
+                })
+            });
+
+            const translationData = await translationResponse.json();
+            // Lấy từ khóa đã được dịch sang tiếng Anh (Nếu gõ "đội pháp", englishQuery sẽ thành "France national football team")
+            const englishQuery = translationData.choices?.[0]?.message?.content?.trim() || data;
+            console.log(`🔍 Từ khóa thực tế dùng để truy vấn Walrus: ${englishQuery}`);
+
+            // Bước 2: Dùng từ khóa tiếng Anh chuẩn để recall dữ liệu từ Walrus Mainnet
+            const memoryResults = await memwal.recall(englishQuery, { maxResults: 5 }); 
             const walrusContext = memoryResults && memoryResults.length > 0 
                 ? memoryResults.map(m => m.text).join("\n")
                 : (currentLang === 'en' ? "No direct data found in Walrus memory." : "Không tìm thấy dữ liệu trực tiếp trong bộ nhớ Walrus.");
 
-            console.log("🤖 Đang gửi dữ liệu bối cảnh qua API Groq (Llama 3.1) với Prompt ép ngôn ngữ...");
-            
+            // Bước 3: Đẩy bối cảnh tìm được qua Llama 3.1 để kết xuất bài phân tích theo ngôn ngữ người dùng lựa chọn
+            console.log("🤖 Đang tạo bài phân tích 3 bước...");
             const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                 method: "POST",
                 headers: {
@@ -72,12 +96,10 @@ export default async function handler(req, res) {
                         { role: "system", content: getSystemPrompt(currentLang) },
                         { 
                             role: "user", 
-                            content: currentLang === 'en'
-                                ? `Walrus Mainnet Historical Context Data (Translate this into English analysis if it is in Vietnamese):\n${walrusContext}\n\nUser Analysis Request: ${data}`
-                                : `Dữ liệu bối cảnh lịch sử rút từ Walrus Mainnet:\n${walrusContext}\n\nYêu cầu phân tích từ người dùng: ${data}`
+                            content: `Walrus Mainnet Historical Context Data:\n${walrusContext}\n\nUser Analysis Request: ${data}`
                         }
                     ],
-                    temperature: 0.2 // Giảm xuống 0.2 để AI tuân thủ cấu trúc hệ thống chặt chẽ hơn, không tự sáng tạo ngôn ngữ
+                    temperature: 0.2
                 })
             });
 

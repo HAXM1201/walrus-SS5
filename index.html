@@ -13,11 +13,13 @@
       body {
         font-family: "Inter", sans-serif;
       }
+      /* ĐÃ SỬA: Cố định ảnh nền tuyệt đối bằng background-attachment: fixed để khi cuộn chữ nền không bị chạy */
       .bg-fixed-custom {
         background-image: url("ss5.png");
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
+        background-attachment: fixed;
       }
       @keyframes marquee {
         0% {
@@ -76,7 +78,7 @@
     </div>
 
     <div
-      class="relative z-10 w-full max-w-5xl flex flex-col items-center p-6 mt-4"
+      class="relative z-10 w-full md:w-[70%] flex flex-col items-center p-6 mt-4 transition-all duration-300"
     >
       <div class="mb-12 text-center space-y-3">
         <h1
@@ -94,7 +96,7 @@
       </div>
 
       <div
-        class="w-full max-w-4xl relative shadow-2xl rounded-full bg-white/80 border border-white hover:border-blue-300 transition-all duration-300"
+        class="w-full relative shadow-2xl rounded-full bg-white/80 border border-white hover:border-blue-300 transition-all duration-300"
       >
         <input
           id="queryInput"
@@ -113,7 +115,7 @@
 
       <div
         id="resultBox"
-        class="mt-12 w-full max-w-4xl bg-white/95 backdrop-blur-lg p-10 rounded-3xl shadow-2xl border border-white/50 hidden space-y-6 text-left"
+        class="mt-12 w-full bg-white/95 backdrop-blur-lg p-10 rounded-3xl shadow-2xl border border-white/50 hidden space-y-6 text-left"
       >
         <h3 id="resultHeader" class="font-bold text-gray-900 text-2xl tracking-tight border-b border-gray-200 pb-3">
           Kết quả từ Walrus Memory:
@@ -130,8 +132,7 @@
       </div>
     </div>
 
-    <script {is_scannable="true"}>
-      // Hệ thống đa ngôn ngữ
+    <script>
       const translations = {
         vi: {
           title: "World Cup Xưa & Nay",
@@ -174,7 +175,6 @@
           const data = await response.json();
 
           if (data.answer) {
-            // Định dạng text xuống dòng và làm nổi bật các thẻ tiêu đề markdown nếu có bằng cách bọc đậm
             let formattedAnswer = data.answer.replace(/\n/g, "<br>");
             aiResponse.innerHTML = formattedAnswer;
           } else {

@@ -185,19 +185,39 @@
 
       const targetWallet = "0x4053d0211cbbed75d1ac23bfb03e8302a91a69d85581291745ac94e2b746ee6e";
 
+      // SỬA ĐỔI: Sử dụng Sui RPC Node chính thức để lấy dữ liệu thay vì Suiscan API
       async function refreshOnChainBlobsCount() {
         const countEl = document.getElementById("totalBlobsCount");
         countEl.innerText = "Đang đồng bộ...";
 
         try {
-          const response = await fetch(`https://suiscan.xyz/api/v1/addresses/${targetWallet}`);
-          const resData = await response.json();
+          const response = await fetch("https://fullnode.mainnet.sui.io:443", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              id: 1,
+              method: "suix_getOwnedObjects",
+              params: [
+                targetWallet,
+                {
+                  filter: {
+                    MatchAll: [] // Bạn có thể thêm cấu trúc lọc StructType của Walrus Blob NFT tại đây nếu cần cụ thể hơn
+                  },
+                  options: { showType: true }
+                }
+              ]
+            })
+          });
 
-          let total = resData?.nftBalance || 0;
+          const resData = await response.json();
+          
+          // Đếm tổng số lượng object/NFT nhận được từ địa chỉ ví
+          let total = resData?.result?.data?.length || 0;
           countEl.innerText = total + " Blobs";
           console.log(`✅ Đồng bộ thành công: ${total} Blobs`);
         } catch (err) {
-          console.error("⚠️ Lỗi kết nối API:", err);
+          console.error("⚠️ Lỗi kết nối RPC:", err);
           countEl.innerText = "Không lấy được số liệu";
         }
       }
@@ -235,7 +255,6 @@
             aiResponse.innerText = currentLang === 'en' ? "No response received from system." : "Không nhận được phản hồi từ hệ thống.";
           }
 
-          // Hiển thị Blob ID chính xác hơn
           let blobText = "Status: " + (data.status || "Success");
           if (data.blobId) {
             blobText += " | New Blob ID: " + data.blobId;

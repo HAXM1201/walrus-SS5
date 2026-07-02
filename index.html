@@ -75,8 +75,9 @@
       </div>
     </div>
 
+    <!-- Nới rộng khung bọc chính lên max-w-5xl để chứa khung kết quả to hơn phía dưới -->
     <div
-      class="relative z-10 w-full max-w-3xl flex flex-col items-center p-6 mt-4"
+      class="relative z-10 w-full max-w-5xl flex flex-col items-center p-6 mt-4"
     >
       <div class="mb-12 text-center space-y-3">
         <h1
@@ -111,9 +112,10 @@
         </button>
       </div>
 
+      <!-- ĐÃ SỬA: Thay đổi max-w-2xl thành max-w-4xl để mở rộng không gian hiển thị chữ to rõ ràng -->
       <div
         id="resultBox"
-        class="mt-12 w-full max-w-2xl bg-white/90 backdrop-blur-lg p-8 rounded-3xl shadow-xl border border-white/50 hidden space-y-4 text-left"
+        class="mt-12 w-full max-w-4xl bg-white/90 backdrop-blur-lg p-8 rounded-3xl shadow-xl border border-white/50 hidden space-y-4 text-left"
       >
         <h3 id="resultHeader" class="font-bold text-gray-900 text-lg">
           Kết quả từ Walrus Memory:
@@ -150,6 +152,8 @@
             "✨ World Cup History preserved forever on Walrus Memory — Immutable, Decentralized, and Timeless. - Designed by HALN",
         },
       };
+
+      // ĐÃ ĐỒNG BỘ: Hợp nhất 2 hàm handleQuery trùng lặp thành bản hoàn chỉnh chuẩn hóa thẻ xuống dòng <br>
       async function handleQuery() {
         const query = document.getElementById("queryInput").value;
         const resultBox = document.getElementById("resultBox");
@@ -171,15 +175,21 @@
           });
           const data = await response.json();
 
-          // Hiển thị kết quả đã được AI phân tích theo Form 3 bước
-          aiResponse.innerHTML = data.answer.replace(/\n/g, "<br>");
+          // Hiển thị kết quả đã được AI phân tích theo Form 3 bước có replace xuống dòng bằng <br> để hiển thị tốt trên HTML
+          if (data.answer) {
+            aiResponse.innerHTML = data.answer.replace(/\n/g, "<br>");
+          } else {
+            aiResponse.innerText = "Không nhận được phản hồi từ hệ thống.";
+          }
+          
           document.getElementById("blobId").innerText =
-            "Status: " + data.status;
+            "Status: " + (data.status || "Success");
         } catch (error) {
           aiResponse.innerText =
             "Đã xảy ra lỗi khi kết nối với hệ thống AI Agent.";
         }
       }
+
       function changeLanguage() {
         const lang = document.getElementById("langSwitch").value;
         document.getElementById("title").innerText = translations[lang].title;
@@ -192,32 +202,6 @@
           translations[lang].res;
         document.getElementById("marqueeText").innerText =
           translations[lang].marquee;
-      }
-
-      async function handleQuery() {
-        const query = document.getElementById("queryInput").value;
-        const resultBox = document.getElementById("resultBox");
-        const aiResponse = document.getElementById("aiResponse");
-
-        resultBox.classList.remove("hidden");
-        aiResponse.innerText =
-          "Đang kết nối với Walrus Memory và phân tích bài viết...";
-        document.getElementById("blobId").innerText = "";
-
-        try {
-          const response = await fetch("/api/index", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "process", data: query }),
-          });
-          const data = await response.json();
-
-          aiResponse.innerText = data.answer;
-          document.getElementById("blobId").innerText =
-            "Blob ID: " + data.blobId;
-        } catch (error) {
-          aiResponse.innerText = "Đã xảy ra lỗi khi kết nối với Walrus Memory.";
-        }
       }
     </script>
   </body>

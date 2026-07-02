@@ -187,41 +187,51 @@
 
       // SỬA ĐỔI: Sử dụng Sui RPC Node chính thức để lấy dữ liệu thay vì Suiscan API
       async function refreshOnChainBlobsCount() {
-        const countEl = document.getElementById("totalBlobsCount");
-        countEl.innerText = "Đang đồng bộ...";
+  const countEl = document.getElementById("totalBlobsCount");
+  countEl.innerText = "Đang đồng bộ...";
 
-        try {
-          const response = await fetch("https://fullnode.mainnet.sui.io:443", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              jsonrpc: "2.0",
-              id: 1,
-              method: "suix_getOwnedObjects",
-              params: [
-                 targetWallet,
-                 {
-                   filter: { MatchAll: [] },
-                   options: { showType: true }
-                 },
-                 null, // cursor (để null nếu lấy từ đầu)
-                 1000  // Thêm giới hạn limit ở đây (ví dụ: tối đa 1000 objects)
-              ]
-            })
-          });
+  try {
+    // Gọi RPC với filter chính xác để lấy danh sách
+    const response = await fetch("https://fullnode.mainnet.sui.io:443", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "suix_getOwnedObjects",
+        params: [
+          targetWallet,
+          {
+            filter: {
+              // Bạn có thể lọc riêng loại Walrus Blob NFT (như hiển thị: 0xfdc8...::Blob) để chuẩn xác nhất
+              StructType: "0xfdc8c1e695d73602fc1a2a1b14f85e3d02a91a69d85581291745ac94e2b746ee6e::blob::Blob" 
+            },
+            options: { showType: true }
+          },
+          null,
+          500 // Cấu hình limit lớn hơn số lượng 430 để lấy trọn vẹn trong 1 page
+        ]
+      })
+    });
 
-          const resData = await response.json();
-          
-          // Đếm tổng số lượng object/NFT nhận được từ địa chỉ ví
-          let total = resData?.result?.data?.length || 0;
-          countEl.innerText = total + " Blobs";
-          console.log(`✅ Đồng bộ thành công: ${total} Blobs`);
-        } catch (err) {
-          console.error("⚠️ Lỗi kết nối RPC:", err);
-          countEl.innerText = "Không lấy được số liệu";
-        }
-      }
+    const resData = await response.json();
+    console.log("RPC Raw Response:", resData); // In ra để bạn kiểm tra cấu trúc nếu cần
 
+    // Kiểm tra và lấy mảng dữ liệu từ cấu trúc chuẩn của SUI RPC
+    const objectsArray = resData?.result?.data;
+    
+    if (Array.isArray(objectsArray)) {
+      let total = objectsArray.length;
+      countEl.innerText = total + " Blobs";
+      console.log(`✅ Đồng bộ thành công: ${total} Blobs`);
+    } else {
+      countEl.innerText = "0 Blobs";
+    }
+  } catch (err) {
+    console.error("⚠️ Lỗi kết nối RPC:", err);
+    countEl.innerText = "Không lấy được số liệu";
+  }
+}
       window.addEventListener("DOMContentLoaded", refreshOnChainBlobsCount);
 
       async function handleQuery() {

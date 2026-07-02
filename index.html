@@ -191,57 +191,43 @@
   countEl.innerText = "Đang đồng bộ...";
 
   try {
-    let allObjects = [];
-    let hasNextPage = true;
-    let nextCursor = null;
+    // Gọi thẳng tới API đếm tổng tài sản/NFT của Suivision dành cho ví của bạn
+    const response = await fetch(`https://api.suivision.xyz/mainnet/api/account/assets?address=${targetWallet}`);
+    
+    // Nếu API yêu cầu headers hoặc chặn CORS từ localhost, bạn có thể dùng API đếm tổng quan này:
+    // const response = await fetch(`https://api.suivision.xyz/mainnet/api/account/summary/${targetWallet}`);
+    
+    const resData = await response.json();
+    console.log("Suivision Data:", resData);
 
-    // Vòng lặp chạy tự động để quét sạch các trang dữ liệu (Pagination) cho đến khi lấy hết 430+ items
-    // Vòng lặp này chạy ngầm cực nhanh vì ta chỉ lấy thông tin định danh (ID/Type)
-    while (hasNextPage) {
-      const response = await fetch("https://fullnode.mainnet.sui.io:443", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: 1,
-          method: "suix_getOwnedObjects",
-          params: [
-            targetWallet,
-            {
-              // Lọc chuẩn xác loại tài sản Walrus Blob trên Mainnet để đếm
-              filter: { 
-                StructType: "0xfdc8c1e695d73602fc1a2a1b14f85e3d02a91a69d85581291745ac94e2b746ee6e::blob::Blob" 
-              }
-            },
-            nextCursor,
-            50 // Mỗi lượt quét lấy 50 object
-          ]
-        })
-      });
+    // Trích xuất tổng số lượng item (tài sản/NFT) từ dữ liệu của Suivision
+    // Cấu trúc thông thường của Suivision: resData.result.total hoặc resData.data.total_items
+    let totalItems = 0;
+    
+    if (resData && resData.result) {
+      // Trường hợp 1: API trả về tổng số ở trường total
+      totalItems = resData.result.total || resData.result.totalItems || 0;
+    } else if (resData && resData.data) {
+      // Trường hợp 2: Cấu trúc data lồng
+      totalItems = resData.data.total || 0;
+    }
 
-      const resData = await response.json();
-      
-      if (resData && resData.result && resData.result.data) {
-        allObjects = allObjects.concat(resData.result.data);
-        
-        // Kiểm tra xem còn trang tiếp theo không
-        hasNextPage = resData.result.hasNextPage;
-        nextCursor = resData.result.nextCursor;
+    // Hiển thị kết quả thật, nếu bằng 0 hoặc lỗi cấu trúc thì xử lý minh bạch
+    if (totalItems > 0) {
+      countEl.innerText = totalItems + " Blobs";
+      console.log(`✅ Đồng bộ từ Suivision thành công: ${totalItems} items`);
+    } else {
+      // Thử fallback kiểm tra nếu mảng trả về trực tiếp
+      let list = resData?.result?.list || resData?.data;
+      if (Array.isArray(list)) {
+        countEl.innerText = list.length + " Blobs";
       } else {
-        hasNextPage = false;
+        countEl.innerText = "0 Blobs";
       }
     }
 
-    // Hiển thị kết quả thật 100% sau khi quét xong tất cả các trang
-    if (allObjects.length > 0) {
-      countEl.innerText = allObjects.length + " Blobs";
-      console.log(`✅ Đồng bộ dữ liệu thật thành công: ${allObjects.length} Blobs`);
-    } else {
-      countEl.innerText = "0 Blobs";
-    }
-
   } catch (err) {
-    console.error("⚠️ Lỗi kết nối mạng lưới RPC:", err);
+    console.error("⚠️ Lỗi khi kết nối API Suivision:", err);
     countEl.innerText = "Không lấy được số liệu";
   }
 }

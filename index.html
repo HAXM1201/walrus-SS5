@@ -13,7 +13,6 @@
       body {
         font-family: "Inter", sans-serif;
       }
-      /* ĐÃ SỬA: Cố định ảnh nền tuyệt đối bằng background-attachment: fixed để khi cuộn chữ nền không bị chạy */
       .bg-fixed-custom {
         background-image: url("ss5.png");
         background-size: cover;
@@ -142,6 +141,8 @@
           res: "Kết quả từ Walrus Memory:",
           marquee:
             "✨ Lưu trữ lịch sử World Cup vĩnh viễn trên Walrus Memory — Bất biến, Phi tập trung, và Trường tồn theo thời gian. - Thiết kế bởi HALN",
+          loading: "Đang kết nối với Walrus Memory và phân tích dữ liệu theo khung suy luận...",
+          fail: "Đã xảy ra lỗi khi kết nối với hệ thống AI Agent."
         },
         en: {
           title: "World Cup Past & Present",
@@ -151,6 +152,8 @@
           res: "Results from Walrus Memory:",
           marquee:
             "✨ World Cup History preserved forever on Walrus Memory — Immutable, Decentralized, and Timeless. - Designed by HALN",
+          loading: "Connecting to Walrus Memory and analyzing data based on reasoning framework...",
+          fail: "An error occurred while connecting to the AI Agent system."
         },
       };
 
@@ -158,19 +161,21 @@
         const query = document.getElementById("queryInput").value;
         const resultBox = document.getElementById("resultBox");
         const aiResponse = document.getElementById("aiResponse");
+        // ĐÃ SỬA: Lấy giá trị ngôn ngữ hiện tại từ dropdown
+        const currentLang = document.getElementById("langSwitch").value;
 
         if (!query.trim()) return;
 
         resultBox.classList.remove("hidden");
-        aiResponse.innerText =
-          "Đang kết nối với Walrus Memory và phân tích dữ liệu theo khung suy luận...";
+        aiResponse.innerText = translations[currentLang].loading;
         document.getElementById("blobId").innerText = "";
 
         try {
+          // ĐÃ SỬA: Gửi kèm biến lang lên Backend
           const response = await fetch("/api/index", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "process", data: query }),
+            body: JSON.stringify({ action: "process", data: query, lang: currentLang }),
           });
           const data = await response.json();
 
@@ -178,14 +183,13 @@
             let formattedAnswer = data.answer.replace(/\n/g, "<br>");
             aiResponse.innerHTML = formattedAnswer;
           } else {
-            aiResponse.innerText = "Không nhận được phản hồi từ hệ thống.";
+            aiResponse.innerText = currentLang === 'en' ? "No response received from system." : "Không nhận được phản hồi từ hệ thống.";
           }
           
           document.getElementById("blobId").innerText =
             "Status: " + (data.status || "Success");
         } catch (error) {
-          aiResponse.innerText =
-            "Đã xảy ra lỗi khi kết nối với hệ thống AI Agent.";
+          aiResponse.innerText = translations[currentLang].fail;
         }
       }
 

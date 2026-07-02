@@ -199,13 +199,13 @@
               id: 1,
               method: "suix_getOwnedObjects",
               params: [
-                targetWallet,
-                {
-                  filter: {
-                    MatchAll: [] // Bạn có thể thêm cấu trúc lọc StructType của Walrus Blob NFT tại đây nếu cần cụ thể hơn
-                  },
-                  options: { showType: true }
-                }
+                 targetWallet,
+                 {
+                   filter: { MatchAll: [] },
+                   options: { showType: true }
+                 },
+                 null, // cursor (để null nếu lấy từ đầu)
+                 1000  // Thêm giới hạn limit ở đây (ví dụ: tối đa 1000 objects)
               ]
             })
           });

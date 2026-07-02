@@ -215,11 +215,14 @@
             let formattedAnswer = data.answer.replace(/\n/g, "<br>");
             aiResponse.innerHTML = formattedAnswer;
             
-            // ĐÃ ĐỒNG BỘ REAL-TIME: Mỗi lần phân tích thành công (Status: Success), tự động nhảy số Blobs động
-            if (data.status === "Success" || !data.error) {
+            // SỬA TẠI ĐÂY: Nếu có blobId thực tế sinh ra từ Backend, thực hiện tăng số đếm đồng bộ
+            if (data.blobId && data.blobId !== "N/A") {
               savedBlobCount += 1;
               localStorage.setItem('saved_blob_count', savedBlobCount);
               document.getElementById("totalBlobsCount").innerText = savedBlobCount + " Blobs";
+              document.getElementById("blobId").innerText = "New Blob Minted: " + data.blobId;
+            } else {
+              document.getElementById("blobId").innerText = "Status: " + (data.status || "Success");
             }
           } else {
             aiResponse.innerText = currentLang === 'en' ? "No response received from system." : "Không nhận được phản hồi từ hệ thống.";

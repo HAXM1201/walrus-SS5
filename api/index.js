@@ -1,5 +1,4 @@
 import { MemWal } from "@mysten-incubation/memwal";
-import { GoogleGenAI } from "@google/genai";
 
 const memwal = MemWal.create({
     key: process.env.MEMWAL_DELEGATE_KEY_HEX, 
@@ -8,30 +7,22 @@ const memwal = MemWal.create({
     namespace: "worldcup-xua-nay-analytics"
 });
 
-// Khởi tạo SDK Google
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-// Hệ thống Prompt linh hoạt theo ngôn ngữ được yêu cầu
+// Cấu hình Prompt linh hoạt theo ngôn ngữ (Giữ nguyên cấu trúc 3 bước dự thi)
 const getSystemPrompt = (lang) => {
     if (lang === 'en') {
-        return `
-You are the "World Cup Past & Present" AI Tactical Analyst, powered by Walrus Memory (MemWal).
+        return `You are the "World Cup Past & Present" AI Tactical Analyst, powered by Walrus Memory (MemWal).
 CRITICAL: You MUST respond entirely in ENGLISH.
 Analyze historical football matchups using strict 3-step form:
 1. RAW DATA ANALYSIS
 2. TACTICAL & INTENSITY EVOLUTION
-3. PAST VS PRESENT SYNTHESIS
-`;
+3. PAST VS PRESENT SYNTHESIS`;
     }
-    // Mặc định trả về tiếng Việt nếu lang là 'vi' hoặc không xác định
-    return `
-You are the "World Cup Past & Present" AI Tactical Analyst, powered by Walrus Memory (MemWal).
+    return `You are the "World Cup Past & Present" AI Tactical Analyst, powered by Walrus Memory (MemWal).
 CRITICAL: Bạn BẮT BUỘC phải trả lời hoàn toàn bằng TIẾNG VIỆT.
 Analyze historical football matchups using strict 3-step form:
 1. RAW DATA ANALYSIS (THỐNG KÊ THÔ)
 2. TACTICAL & INTENSITY EVOLUTION (SUY LUẬN CHIẾN THUẬT)
-3. PAST VS PRESENT SYNTHESIS (ĐÁNH GIÁ XƯA & NAY)
-`;
+3. PAST VS PRESENT SYNTHESIS (ĐÁNH GIÁ XƯA & NAY)`;
 };
 
 export default async function handler(req, res) {
@@ -39,7 +30,6 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // ĐÃ CẬP NHẬT: Nhận thêm biến lang truyền lên từ Frontend
     const { action, data, lang } = req.body;
     const currentLang = lang || 'vi';
 
@@ -52,20 +42,35 @@ export default async function handler(req, res) {
                 ? memoryResults.map(m => m.text).join("\n")
                 : (currentLang === 'en' ? "No direct data found in Walrus memory." : "Không tìm thấy dữ liệu trực tiếp trong bộ nhớ Walrus.");
 
-            console.log("🤖 Đang gửi dữ liệu bối cảnh qua cấu trúc Google GenAI mới...");
+            console.log("🤖 Đang gửi dữ liệu bối cảnh qua API Groq (Llama 3.1)...");
             
-            const response = await ai.models.generateContent({
-                model: 'gemini-1.5-flash',
-                contents: `Dữ liệu bối cảnh lịch sử rút từ Walrus Mainnet:\n${walrusContext}\n\nYêu cầu phân tích từ người dùng: ${data}`,
-                config: {
-                    systemInstruction: getSystemPrompt(currentLang),
+            // Gọi trực tiếp endpoint của Groq bằng fetch thuần, không cần cài thư viện ngoài
+            const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: "llama-3.1-8b-instant", // Dòng mô hình siêu nhanh, free lượng request cực lớn
+                    messages: [
+                        { role: "system", content: getSystemPrompt(currentLang) },
+                        { role: "user", content: `Dữ liệu bối cảnh lịch sử rút từ Walrus Mainnet:\n${walrusContext}\n\nYêu cầu phân tích từ người dùng: ${data}` }
+                    ],
                     temperature: 0.3
-                }
+                })
             });
 
-            return res.json({ answer: response.text, status: "Success" });
+            const groqData = await groqResponse.json();
+            
+            if (groqData.choices && groqData.choices[0]) {
+                const answerText = groqData.choices[0].message.content;
+                return res.json({ answer: answerText, status: "Success" });
+            } else {
+                throw new Error(groqData.error?.message || "Lỗi không xác định từ Groq API");
+            }
         } catch (error) {
-            console.error("❌ Lỗi:", error);
+            console.error("❌ Lỗi hệ thống:", error);
             return res.status(500).json({ answer: (currentLang === 'en' ? "System error: " : "Lỗi hệ thống: ") + error.message });
         }
     }

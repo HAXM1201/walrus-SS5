@@ -190,17 +190,10 @@
         countEl.innerText = "Đang đồng bộ...";
 
         try {
-          // Sử dụng Suiscan API ổn định
-          const response = await fetch(`https://suiscan.xyz/api/v1/addresses/${targetWallet}/nfts?limit=1`);
+          const response = await fetch(`https://suiscan.xyz/api/v1/addresses/${targetWallet}`);
           const resData = await response.json();
 
-          let total = 0;
-          if (resData && resData.total) {
-            total = resData.total;
-          } else if (resData && resData.data && resData.data.length) {
-            total = resData.data.length;
-          }
-
+          let total = resData?.nftBalance || 0;
           countEl.innerText = total + " Blobs";
           console.log(`✅ Đồng bộ thành công: ${total} Blobs`);
         } catch (err) {

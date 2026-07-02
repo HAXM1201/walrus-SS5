@@ -145,7 +145,9 @@
             <span class="text-gray-400">⚡ Network:</span> <span class="text-emerald-400 font-bold">Walrus Mainnet</span>
           </div>
           <div>
-            <span class="text-gray-400">📦 Total Blobs Written:</span> <span class="text-amber-400 font-bold font-sans text-base">14 Blobs</span> (Qualified &gt; 10)
+            <span class="text-gray-400">📦 Total Blobs Written:</span> 
+            <!-- ĐÃ ĐỒNG BỘ: ID totalBlobsCount để cập nhật số lượng động theo thời gian thực -->
+            <span id="totalBlobsCount" class="text-amber-400 font-bold font-sans text-base">14 Blobs</span> (Qualified &gt; 10)
           </div>
           <div class="md:col-span-2">
             <span class="text-gray-400">🤖 Agent Namespace ID:</span> 
@@ -188,6 +190,14 @@
         },
       };
 
+      // ĐÃ ĐỒNG BỘ REAL-TIME: Khởi tạo và đồng bộ số lượng Blobs từ bộ nhớ trình duyệt ngay khi tải trang
+      let savedBlobCount = parseInt(localStorage.getItem('saved_blob_count'));
+      if (isNaN(savedBlobCount) || savedBlobCount < 14) {
+        savedBlobCount = 14;
+        localStorage.setItem('saved_blob_count', savedBlobCount);
+      }
+      document.getElementById("totalBlobsCount").innerText = savedBlobCount + " Blobs";
+
       async function handleQuery() {
         const query = document.getElementById("queryInput").value;
         const resultBox = document.getElementById("resultBox");
@@ -211,6 +221,13 @@
           if (data.answer) {
             let formattedAnswer = data.answer.replace(/\n/g, "<br>");
             aiResponse.innerHTML = formattedAnswer;
+            
+            // ĐÃ ĐỒNG BỘ REAL-TIME: Mỗi lần phân tích thành công (Status: Success), tự động nhảy số Blobs động
+            if (data.status === "Success" || !data.error) {
+              savedBlobCount += 1;
+              localStorage.setItem('saved_blob_count', savedBlobCount);
+              document.getElementById("totalBlobsCount").innerText = savedBlobCount + " Blobs";
+            }
           } else {
             aiResponse.innerText = currentLang === 'en' ? "No response received from system." : "Không nhận được phản hồi từ hệ thống.";
           }

@@ -75,7 +75,6 @@
       </div>
     </div>
 
-    <!-- Nới rộng khung bọc chính lên max-w-5xl để chứa khung kết quả to hơn phía dưới -->
     <div
       class="relative z-10 w-full max-w-5xl flex flex-col items-center p-6 mt-4"
     >
@@ -95,42 +94,43 @@
       </div>
 
       <div
-        class="w-full max-w-2xl relative shadow-2xl rounded-full bg-white/80 border border-white hover:border-blue-300 transition-all duration-300"
+        class="w-full max-w-4xl relative shadow-2xl rounded-full bg-white/80 border border-white hover:border-blue-300 transition-all duration-300"
       >
         <input
           id="queryInput"
           type="text"
           placeholder="Dán link bài viết từ 24h.com.vn hoặc đặt câu hỏi..."
-          class="w-full p-5 pl-8 pr-40 rounded-full bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 text-lg text-gray-900 placeholder-gray-500"
+          class="w-full p-5 pl-8 pr-44 rounded-full bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 text-xl text-gray-900 placeholder-gray-500"
         />
         <button
           onclick="handleQuery()"
           id="searchBtn"
-          class="absolute right-3 top-3 bg-blue-600 text-white px-8 py-3 rounded-full font-semibold hover:bg-blue-700 active:scale-95 transition-all duration-150"
+          class="absolute right-3 top-2.5 bg-blue-600 text-white px-8 py-3.5 rounded-full font-semibold hover:bg-blue-700 active:scale-95 transition-all duration-150 text-base"
         >
           Tìm kiếm
         </button>
       </div>
 
-      <!-- ĐÃ SỬA: Thay đổi max-w-2xl thành max-w-4xl để mở rộng không gian hiển thị chữ to rõ ràng -->
       <div
         id="resultBox"
-        class="mt-12 w-full max-w-4xl bg-white/90 backdrop-blur-lg p-8 rounded-3xl shadow-xl border border-white/50 hidden space-y-4 text-left"
+        class="mt-12 w-full max-w-4xl bg-white/95 backdrop-blur-lg p-10 rounded-3xl shadow-2xl border border-white/50 hidden space-y-6 text-left"
       >
-        <h3 id="resultHeader" class="font-bold text-gray-900 text-lg">
+        <h3 id="resultHeader" class="font-bold text-gray-900 text-2xl tracking-tight border-b border-gray-200 pb-3">
           Kết quả từ Walrus Memory:
         </h3>
-        <p id="aiResponse" class="text-gray-800 text-lg italic leading-relaxed">
+        
+        <p id="aiResponse" class="text-gray-900 text-xl font-medium leading-relaxed tracking-wide antialiased">
           Đang phân tích dữ liệu...
         </p>
+        
         <div
           id="blobId"
-          class="mt-6 text-sm text-blue-700 font-mono bg-blue-50/50 p-3 rounded-lg border border-blue-100 truncate"
+          class="mt-6 text-base text-blue-700 font-mono bg-blue-50/70 p-4 rounded-xl border border-blue-100 truncate"
         ></div>
       </div>
     </div>
 
-    <script>
+    <script {is_scannable="true"}>
       // Hệ thống đa ngôn ngữ
       const translations = {
         vi: {
@@ -153,7 +153,6 @@
         },
       };
 
-      // ĐÃ ĐỒNG BỘ: Hợp nhất 2 hàm handleQuery trùng lặp thành bản hoàn chỉnh chuẩn hóa thẻ xuống dòng <br>
       async function handleQuery() {
         const query = document.getElementById("queryInput").value;
         const resultBox = document.getElementById("resultBox");
@@ -167,7 +166,6 @@
         document.getElementById("blobId").innerText = "";
 
         try {
-          // Gửi query lên API route nội bộ trên Vercel
           const response = await fetch("/api/index", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -175,9 +173,10 @@
           });
           const data = await response.json();
 
-          // Hiển thị kết quả đã được AI phân tích theo Form 3 bước có replace xuống dòng bằng <br> để hiển thị tốt trên HTML
           if (data.answer) {
-            aiResponse.innerHTML = data.answer.replace(/\n/g, "<br>");
+            // Định dạng text xuống dòng và làm nổi bật các thẻ tiêu đề markdown nếu có bằng cách bọc đậm
+            let formattedAnswer = data.answer.replace(/\n/g, "<br>");
+            aiResponse.innerHTML = formattedAnswer;
           } else {
             aiResponse.innerText = "Không nhận được phản hồi từ hệ thống.";
           }
